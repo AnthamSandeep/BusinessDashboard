@@ -1,0 +1,67 @@
+@model DashboardViewModel
+@using System.Text.Json
+@{ ViewData["Title"] = "Dashboard"; }
+<h3 class="mb-3">Dashboard</h3>
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="card kpi shadow-sm bg-primary"><div class="card-body"><div>Total Customers</div><div class="value">@Model.TotalCustomers.ToString("N0")</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card kpi shadow-sm bg-success"><div class="card-body"><div>Total Products</div><div class="value">@Model.TotalProducts.ToString("N0")</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card kpi shadow-sm bg-warning text-dark"><div class="card-body"><div>Orders</div><div class="value">@Model.TotalOrders.ToString("N0")</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card kpi shadow-sm bg-danger"><div class="card-body"><div>Revenue</div><div class="value">$@Model.Revenue.ToString("N0")</div></div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm"><div class="card-header bg-white fw-semibold">Revenue - last 6 months</div>
+            <div class="card-body"><canvas id="revenueChart" height="110"></canvas></div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100"><div class="card-header bg-white fw-semibold">Top Products</div>
+            <ul class="list-group list-group-flush">
+                @foreach (var p in Model.TopProducts)
+                {
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>@p.Name <span class="text-muted small">(@p.Units units)</span></span>
+                        <span class="fw-semibold">$@p.Revenue.ToString("N0")</span>
+                    </li>
+                }
+            </ul></div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Recent Orders</span>
+        <a asp-controller="Reports" asp-action="Index" class="btn btn-sm btn-outline-primary">View all</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>#</th><th>Customer</th><th>Product</th><th>Date</th><th class="text-end">Amount</th><th>Status</th></tr></thead>
+            <tbody>
+            @foreach (var o in Model.RecentOrders)
+            {
+                var badge = o.Status switch { "Completed" => "success", "Shipped" => "info", "Pending" => "warning", _ => "secondary" };
+                <tr>
+                    <td>@o.Id</td><td>@o.Customer?.Name</td><td>@o.Product?.Name x @o.Quantity</td>
+                    <td>@o.OrderDate.ToString("dd MMM yyyy")</td>
+                    <td class="text-end">$@o.Amount.ToString("N2")</td>
+                    <td><span class="badge text-bg-@badge">@o.Status</span></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        new Chart(document.getElementById('revenueChart'), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(JsonSerializer.Serialize(Model.MonthLabels)),
+                datasets: [{ label: 'Revenue ($)', data: @Html.Raw(JsonSerializer.Serialize(Model.MonthRevenue)), backgroundColor: '#0d6efd' }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+    </script>
+}
